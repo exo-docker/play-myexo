@@ -14,7 +14,7 @@ ENV MY_EXO_APPDIR /opt/myexo/code
 ENV MY_EXO_PLAYDIR /opt/play
 
 ENV PLAY_VERSION 1.3.0
-ENV APP_MODE production
+ENV APP_MODE prod
 
 ENV EXO_USER myexo
 ENV EXO_GROUP myexo
@@ -56,6 +56,6 @@ COPY dependencies.yml conf/dependencies.yml
 RUN play dependencies --sync && \
     rm -rf conf/dependencies.yml
 
-EXPOSE 9000
+EXPOSE 20100
 ENTRYPOINT ["/usr/local/bin/tini", "--"]
 CMD ${MY_EXO_APPDIR}/start_My_eXo.sh
