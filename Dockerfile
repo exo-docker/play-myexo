@@ -5,7 +5,7 @@
 # Build: docker build -t exoplatform/play-myexo .
 # Run:      docker run -ti --rm --name=play-myexo -p 9000:9000 exoplatform/play-myexo
 #           docker run -d --name=play-myexo -p 9000:9000 exoplatform/play-myexo
-FROM       exoplatform/jdk:openjdk-8-ubuntu-18
+FROM       exoplatform/jdk:openjdk-8-ubuntu-20
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
 # Environment variables

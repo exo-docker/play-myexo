@@ -17,7 +17,7 @@ require:
     - com.atlassian.crowd -> crowd-integration-client-common 2.9.0-OD-049
     - com.atlassian.crowd -> crowd-integration-api 2.9.0-OD-049
     - com.atlassian.crowd -> crowd-integration-client-rest 2.9.0-OD-049
-    - org.eclipse.mylyn.github -> org.eclipse.egit.github.core 3.6.2.201501210735-r
+    - org.eclipse.mylyn.github -> org.eclipse.egit.github.core 6.1.0.202203080745-r
     - com.squareup.okhttp -> okhttp-urlconnection 2.2.0
     - com.google.guava -> guava 18.0
     - org.jadira.usertype -> usertype.core 4.0.0.GA
