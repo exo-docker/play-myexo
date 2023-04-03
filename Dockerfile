@@ -5,7 +5,7 @@
 # Build: docker build -t exoplatform/play-myexo .
 # Run:      docker run -ti --rm --name=play-myexo -p 9000:9000 exoplatform/play-myexo
 #           docker run -d --name=play-myexo -p 9000:9000 exoplatform/play-myexo
-FROM       exoplatform/jdk:openjdk-8-ubuntu-18
+FROM       exoplatform/jdk:openjdk-8-ubuntu-2204
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
 # Environment variables
@@ -21,7 +21,9 @@ ENV EXO_GROUP myexo
 
 # add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 RUN useradd --create-home --user-group --shell /bin/bash ${EXO_USER} \
-   && apt-get update && apt-get install -y sudo ant python && apt-get clean
+   && apt-get -qq update && apt-get -qq -y upgrade ${_APT_OPTIONS} && apt-get -qq install -y sudo ant python2 && apt-get -qq -y autoremove && \
+  apt-get -qq -y clean && \
+  rm -rf /var/lib/apt/lists/*
 
 # Create needed directories
 RUN mkdir -p ${MY_EXO_APPDIR} && chown ${EXO_USER}:${EXO_GROUP} ${MY_EXO_APPDIR} \
@@ -37,6 +39,8 @@ COPY start_My_eXo.sh ${MY_EXO_APPDIR}/start_My_eXo.sh
 RUN chmod 775 ${MY_EXO_APPDIR}/start_My_eXo.sh \
     && chown -R ${EXO_USER}:${EXO_GROUP} . \
     && chown -R ${EXO_USER}:${EXO_GROUP} /opt
+
+RUN install /usr/bin/python2 /usr/bin/python
 
 # Install Play Framework
 USER myexo
