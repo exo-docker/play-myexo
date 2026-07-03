@@ -37,7 +37,7 @@ RUN apt-get -qq update && apt-get -qq install -y tini && apt-get -qq -y autoremo
     apt-get -qq -y clean && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --user-group --shell /bin/bash ${EXO_USER} \
-    && mkdir -p ${MY_EXO_APPDIR}/conf && chown -R ${EXO_USER}:${EXO_GROUP} ${MY_EXO_DIR}
+    && mkdir -p ${MY_EXO_APPDIR}/conf ${MY_EXO_APPDIR}/logs && chown -R ${EXO_USER}:${EXO_GROUP} ${MY_EXO_DIR}
 
 WORKDIR ${MY_EXO_APPDIR}
 
