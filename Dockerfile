@@ -1,65 +1,53 @@
-# Deploy play in docker image based on eXo jdk image
-# some dependencies are deployed for my-exo apps need
-# This image is used for myexo application
-# It is based on this work: https://github.com/exoplatform/my-exo/blob/develop/envdev/docker/my-exo-web/Dockerfile
-# Build: docker build -t exoplatform/play-myexo .
-# Run:      docker run -ti --rm --name=play-myexo -p 9000:9000 exoplatform/play-myexo
-#           docker run -d --name=play-myexo -p 9000:9000 exoplatform/play-myexo
-FROM       exoplatform/jdk:openjdk-8-ubuntu-2204
+# Builds and runs the my-exo Spring Boot application (replaces the Play 1.x runtime this image used to bootstrap).
+#
+# This Dockerfile expects `my-exo` and `play-myexo` checked out as sibling directories, and must be built with
+# the build context set to their *parent* directory so the build stage can see the my-exo source tree:
+#
+#   Build: docker build -f play-myexo/Dockerfile -t exoplatform/my-exo:latest .          (run from the parent dir)
+#          or simply: ./build.sh                                                        (from within play-myexo/)
+#   Run:   docker run -d --name=my-exo -p 20100:20100 exoplatform/my-exo:latest
+#          docker run -d --name=my-exo -p 20100:20100 -e APP_MODE=preprod exoplatform/my-exo:latest
+
+# ---- Build stage ----
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
+
+# Cache dependency resolution separately from source changes.
+COPY my-exo/pom.xml ./pom.xml
+RUN mvn -q -B dependency:go-offline
+
+COPY my-exo/src ./src
+RUN mvn -q -B package -DskipTests
+
+# ---- Runtime stage ----
+FROM eclipse-temurin:21-jre-jammy
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
-# Environment variables
-ENV MY_EXO_DIR /opt/myexo
-ENV MY_EXO_APPDIR /opt/myexo/code
-ENV MY_EXO_PLAYDIR /opt/play
+ENV MY_EXO_DIR=/opt/myexo
+ENV MY_EXO_APPDIR=/opt/myexo/code
+ENV APP_MODE=prod
+ENV EXO_USER=myexo
+ENV EXO_GROUP=myexo
+# Mount an application.yml/application-<profile>.yml here to override baked-in settings without rebuilding
+# the image (replaces the old bind-mounted conf/application.conf convention). Absent by default: `optional:`
+# means Spring Boot silently skips it if nothing is mounted.
+ENV SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:${MY_EXO_APPDIR}/conf/
 
-ENV PLAY_VERSION 1.3.0
-ENV APP_MODE prod
+RUN apt-get -qq update && apt-get -qq install -y tini && apt-get -qq -y autoremove && \
+    apt-get -qq -y clean && rm -rf /var/lib/apt/lists/*
 
-ENV EXO_USER myexo
-ENV EXO_GROUP myexo
-
-# add our user and group first to make sure their IDs get assigned consistently, regardless of whatever dependencies get added
 RUN useradd --create-home --user-group --shell /bin/bash ${EXO_USER} \
-   && apt-get -qq update && apt-get -qq -y upgrade ${_APT_OPTIONS} && apt-get -qq install -y sudo ant python2 && apt-get -qq -y autoremove && \
-  apt-get -qq -y clean && \
-  rm -rf /var/lib/apt/lists/*
-
-# Create needed directories
-RUN mkdir -p ${MY_EXO_APPDIR} && chown ${EXO_USER}:${EXO_GROUP} ${MY_EXO_APPDIR} \
-    && mkdir -p ${MY_EXO_APPDIR}/conf && chown ${EXO_USER}:${EXO_GROUP} ${MY_EXO_APPDIR}/conf \
-    && mkdir -p ${MY_EXO_PLAYDIR} && chown ${EXO_USER}:${EXO_GROUP} ${MY_EXO_PLAYDIR}
-
+    && mkdir -p ${MY_EXO_APPDIR}/conf && chown -R ${EXO_USER}:${EXO_GROUP} ${MY_EXO_DIR}
 
 WORKDIR ${MY_EXO_APPDIR}
-# copy default application.conf
-COPY conf/application.conf ${MY_EXO_APPDIR}/conf/application.conf
-# Add script to start my-exo app
-COPY start_My_eXo.sh ${MY_EXO_APPDIR}/start_My_eXo.sh
-RUN chmod 775 ${MY_EXO_APPDIR}/start_My_eXo.sh \
-    && chown -R ${EXO_USER}:${EXO_GROUP} . \
-    && chown -R ${EXO_USER}:${EXO_GROUP} /opt
 
-RUN install /usr/bin/python2 /usr/bin/python
+COPY --from=build --chown=${EXO_USER}:${EXO_GROUP} /build/target/my-exo-*.jar ${MY_EXO_APPDIR}/app.jar
+COPY --chown=${EXO_USER}:${EXO_GROUP} play-myexo/start_My_eXo.sh ${MY_EXO_APPDIR}/start_My_eXo.sh
+RUN chmod 775 ${MY_EXO_APPDIR}/start_My_eXo.sh
 
-# Install Play Framework
-USER myexo
-
-RUN cd ${MY_EXO_PLAYDIR} && \
-    curl -L -o play-${PLAY_VERSION}.zip http://downloads.typesafe.com/play/${PLAY_VERSION}/play-${PLAY_VERSION}.zip && \
-    unzip -q play-${PLAY_VERSION}.zip && rm play-${PLAY_VERSION}.zip  && \
-    chmod +x ${MY_EXO_PLAYDIR}/play1-${PLAY_VERSION}/play
-
-USER root
-RUN ln -sf ${MY_EXO_PLAYDIR}/play1-${PLAY_VERSION}/play /usr/local/bin
-
-USER myexo
-
-#Download play dependencies
-COPY dependencies.yml conf/dependencies.yml
-RUN play dependencies --sync && \
-    rm -rf conf/dependencies.yml
+USER ${EXO_USER}
 
 EXPOSE 20100
-ENTRYPOINT ["/usr/local/bin/tini", "--"]
-CMD ${MY_EXO_APPDIR}/start_My_eXo.sh
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["./start_My_eXo.sh"]
