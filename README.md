@@ -21,8 +21,9 @@ parent-dir/
 ./build.sh
 ```
 
-This just wraps the equivalent `docker build` command below, run from the parent directory, tagging
-the result `exoplatform/my-exo:latest`.
+This just wraps `docker buildx build ... --load`, run from the parent directory, tagging the result
+`exoplatform/my-exo:latest` and loading it into your local `docker images` for a single-platform build.
+Uses `buildx` throughout — the legacy `docker build` builder is never used.
 
 **Manual way** (multi-arch, matching how the real `exoplatform/play-myexo` image is built) — from the
 parent directory:

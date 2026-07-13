@@ -9,4 +9,4 @@ if [ ! -d "my-exo" ]; then
   exit 1
 fi
 
-docker build -f play-myexo/Dockerfile -t exoplatform/my-exo:latest .
+docker buildx build -f play-myexo/Dockerfile -t exoplatform/my-exo:latest --load .
