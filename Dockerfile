@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Builds and runs the my-exo Spring Boot application (replaces the Play 1.x runtime this image used to bootstrap).
 #
 # This Dockerfile expects `my-exo` and `play-myexo` checked out as sibling directories, and must be built with
@@ -12,15 +13,17 @@
 FROM maven:3.9-eclipse-temurin-21 AS build
 WORKDIR /build
 
-# Cache dependency resolution separately from source changes.
+# BuildKit cache mount for ~/.m2: persists across builds independently of the layer cache, so a pom.xml
+# change (or a fresh builder with no cached layers at all, e.g. after a prune) only re-downloads the
+# dependencies that actually changed instead of the entire repository.
 COPY my-exo/pom.xml ./pom.xml
-RUN mvn -q -B dependency:go-offline
+RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
 
 COPY my-exo/src ./src
-RUN mvn -q -B package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 mvn -q -B package -DskipTests
 
 # ---- Runtime stage ----
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:21-jre-resolute
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
 ENV MY_EXO_DIR=/opt/myexo
@@ -36,7 +39,13 @@ ENV SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:${MY_EXO_APPDIR}/conf/
 RUN apt-get -qq update && apt-get -qq install -y tini && apt-get -qq -y autoremove && \
     apt-get -qq -y clean && rm -rf /var/lib/apt/lists/*
 
-RUN useradd --create-home --user-group --shell /bin/bash ${EXO_USER} \
+# Pinned uid/gid 1000: logs/ is bind-mounted from a host directory owned by uid/gid 1000, so this must
+# stay stable across base-image changes -- useradd's auto-assigned id shifts with however many system
+# accounts the base image already has (1000 on jammy, 1001 on resolute since it ships a built-in
+# "ubuntu" account at 1000), which silently breaks the host directory's ownership match. Removing that
+# built-in account first to free up 1000 (no-ops harmlessly on bases that don't have one).
+RUN (userdel -r ubuntu 2>/dev/null || true) && (groupdel ubuntu 2>/dev/null || true) \
+    && useradd --create-home --user-group --uid 1000 --shell /bin/bash ${EXO_USER} \
     && mkdir -p ${MY_EXO_APPDIR}/conf ${MY_EXO_APPDIR}/logs && chown -R ${EXO_USER}:${EXO_GROUP} ${MY_EXO_DIR}
 
 WORKDIR ${MY_EXO_APPDIR}
