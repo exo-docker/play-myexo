@@ -13,4 +13,4 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-exec java -Xmx1g -Xms1g -jar app.jar --spring.profiles.active="${APP_MODE}"
+exec java -Xmx2g -Xms1g -jar app.jar --spring.profiles.active="${APP_MODE}"
