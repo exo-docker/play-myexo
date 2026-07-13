@@ -36,7 +36,7 @@ ENV EXO_GROUP=myexo
 # means Spring Boot silently skips it if nothing is mounted.
 ENV SPRING_CONFIG_ADDITIONAL_LOCATION=optional:file:${MY_EXO_APPDIR}/conf/
 
-RUN apt-get -qq update && apt-get -qq install -y tini && apt-get -qq -y autoremove && \
+RUN apt-get -qq update && apt-get -qq install -y tini curl && apt-get -qq -y autoremove && \
     apt-get -qq -y clean && rm -rf /var/lib/apt/lists/*
 
 # Pinned uid/gid 1000: logs/ is bind-mounted from a host directory owned by uid/gid 1000, so this must
@@ -57,6 +57,11 @@ RUN chmod 775 ${MY_EXO_APPDIR}/start_My_eXo.sh
 USER ${EXO_USER}
 
 EXPOSE 20100
+
+# spring-boot-starter-actuator is already a dependency; /actuator/health is permitAll'd in SecurityConfig
+# specifically so this can reach it unauthenticated. start-period covers a cold JVM boot + Crowd/DB waits.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:20100/actuator/health || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["./start_My_eXo.sh"]
