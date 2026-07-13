@@ -12,4 +12,5 @@ spring:
 
 This replaces the old Play-era convention of bind-mounting `conf/application.conf`. If nothing is mounted here,
 the image runs entirely on its baked-in `application.yml` defaults plus whatever environment variables are set
-(`DB_PASSWORD`, `MYEXO_BASE_URL`, `APP_MODE`, `DB_HOST`, `DB_PORT`).
+(`MYEXO_DB_HOST`, `MYEXO_DB_PORT`, `MYEXO_DB_NAME`, `MYEXO_DB_USERNAME`, `MYEXO_DB_PASSWORD`, `MYEXO_SMTP_HOST`,
+`MYEXO_SMTP_PORT`, `MYEXO_JAVA_XMX`, `MYEXO_JAVA_XMS`, `MYEXO_JAVA_OPTS`, `MYEXO_BASE_URL`, `APP_MODE`).
