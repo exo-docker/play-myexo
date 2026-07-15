@@ -1,0 +1,52 @@
+# Structural validation for the built image, run with dgoss (https://github.com/goss-org/goss):
+#
+#   GOSS_PATH=/path/to/goss GOSS_FILES_PATH=. dgoss run --entrypoint bash exoplatform/my-exo:latest -c "sleep 300"
+#
+# These checks don't need a real DB/SMTP -- they only validate the image's own filesystem/user/runtime,
+# not that the app can actually boot end-to-end (see README.md for that, which needs the full compose stack).
+
+file:
+  # No app.jar check here: the image no longer bakes one in, it's downloaded by start_My_eXo.sh on
+  # container start (which the dgoss invocation above never runs, since it overrides the entrypoint).
+  /opt/myexo/code/logs:
+    exists: true
+    filetype: directory
+    owner: myexo
+  /opt/myexo/code/start_My_eXo.sh:
+    exists: true
+    mode: "0775"
+
+user:
+  myexo:
+    exists: true
+    uid: 1000
+    gid: 1000
+    shell: /bin/bash
+
+command:
+  id_uid:
+    exec: "id -u myexo"
+    exit-status: 0
+    stdout:
+      - "1000"
+  id_gid:
+    exec: "id -g myexo"
+    exit-status: 0
+    stdout:
+      - "1000"
+  java_version:
+    exec: "java -version"
+    exit-status: 0
+    stderr:
+      - "21."
+  no_ubuntu_uid_conflict:
+    # Newer Ubuntu base images ship a built-in "ubuntu" account at uid/gid 1000 -- the Dockerfile
+    # removes it so myexo can be pinned there instead. This catches a future base-image bump silently
+    # reintroducing the conflict (useradd would then fail at build time, but better to fail here too).
+    exec: "getent passwd 1000"
+    exit-status: 0
+    stdout:
+      - "myexo"
+  curl_installed:
+    exec: "curl --version"
+    exit-status: 0
