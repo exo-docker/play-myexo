@@ -1,5 +1,21 @@
 #!/bin/bash -ue
 
+# The image ships with no application jar baked in -- fetched fresh on every container start from a
+# published build artifact (e.g. Nexus), so a new my-exo release never requires rebuilding/repushing
+# this image; only publishing a new jar and pointing MYEXO_JAR_URL at it (or restarting the container,
+# if the URL is a stable "latest"-style pointer).
+#
+# Dev convenience: mount a jar directly at this path (e.g. -v ./my-exo.jar:/opt/myexo/code/app.jar) to
+# skip the download entirely and run that jar instead -- no MYEXO_JAR_URL/network access needed.
+if [ -f app.jar ]; then
+  echo "app.jar already present (mounted), skipping download."
+else
+  : "${MYEXO_JAR_URL:?MYEXO_JAR_URL must be set to the download URL for the my-exo jar}"
+  echo "Downloading my-exo jar from ${MYEXO_JAR_URL}..."
+  curl -fsSL -o app.jar "${MYEXO_JAR_URL}"
+  echo "Downloaded app.jar ($(du -h app.jar | cut -f1))"
+fi
+
 # Wait until the database is reachable. HikariCP will also retry internally, but failing fast on a cold
 # start (e.g. `docker compose up` bringing the DB and app containers up together) is a bad first impression.
 # Same MYEXO_DB_HOST/MYEXO_DB_PORT names the app's own datasource URL uses (application.yml), so one

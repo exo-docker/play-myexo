@@ -1,28 +1,16 @@
 # syntax=docker/dockerfile:1
-# Builds and runs the my-exo Spring Boot application (replaces the Play 1.x runtime this image used to bootstrap).
+# Runs the my-exo Spring Boot application (replaces the Play 1.x runtime this image used to bootstrap).
 #
-# This Dockerfile expects `my-exo` and `play-myexo` checked out as sibling directories, and must be built with
-# the build context set to their *parent* directory so the build stage can see the my-exo source tree:
+# The image carries no application code of its own -- start_My_eXo.sh downloads the jar from
+# $MYEXO_JAR_URL (e.g. a Nexus-hosted build artifact) on every container start before launching it.
+# A new my-exo release therefore never needs this image rebuilt/repushed: publish the new jar and point
+# MYEXO_JAR_URL at it (or just restart the container if the URL is a stable "latest" pointer).
 #
-#   Build: docker build -f play-myexo/Dockerfile -t exoplatform/my-exo:latest .          (run from the parent dir)
-#          or simply: ./build.sh                                                        (from within play-myexo/)
-#   Run:   docker run -d --name=my-exo -p 20100:20100 exoplatform/my-exo:latest
-#          docker run -d --name=my-exo -p 20100:20100 -e APP_MODE=preprod exoplatform/my-exo:latest
+#   Build: docker build -t exoplatform/my-exo:latest .        (run from within play-myexo/)
+#          or simply: ./build.sh
+#   Run:   docker run -d --name=my-exo -p 20100:20100 -e MYEXO_JAR_URL=https://nexus.example.com/.../my-exo.jar exoplatform/my-exo:latest
+#          docker run -d --name=my-exo -p 20100:20100 -e APP_MODE=preprod -e MYEXO_JAR_URL=... exoplatform/my-exo:latest
 
-# ---- Build stage ----
-FROM maven:3.9-eclipse-temurin-21 AS build
-WORKDIR /build
-
-# BuildKit cache mount for ~/.m2: persists across builds independently of the layer cache, so a pom.xml
-# change (or a fresh builder with no cached layers at all, e.g. after a prune) only re-downloads the
-# dependencies that actually changed instead of the entire repository.
-COPY my-exo/pom.xml ./pom.xml
-RUN --mount=type=cache,target=/root/.m2 mvn -q -B dependency:go-offline
-
-COPY my-exo/src ./src
-RUN --mount=type=cache,target=/root/.m2 mvn -q -B package -DskipTests
-
-# ---- Runtime stage ----
 FROM eclipse-temurin:21-jre-resolute
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
@@ -50,8 +38,7 @@ RUN (userdel -r ubuntu 2>/dev/null || true) && (groupdel ubuntu 2>/dev/null || t
 
 WORKDIR ${MY_EXO_APPDIR}
 
-COPY --from=build --chown=${EXO_USER}:${EXO_GROUP} /build/target/my-exo-*.jar ${MY_EXO_APPDIR}/app.jar
-COPY --chown=${EXO_USER}:${EXO_GROUP} play-myexo/start_My_eXo.sh ${MY_EXO_APPDIR}/start_My_eXo.sh
+COPY --chown=${EXO_USER}:${EXO_GROUP} start_My_eXo.sh ${MY_EXO_APPDIR}/start_My_eXo.sh
 RUN chmod 775 ${MY_EXO_APPDIR}/start_My_eXo.sh
 
 USER ${EXO_USER}

@@ -6,10 +6,8 @@
 # not that the app can actually boot end-to-end (see README.md for that, which needs the full compose stack).
 
 file:
-  /opt/myexo/code/app.jar:
-    exists: true
-    owner: myexo
-    group: myexo
+  # No app.jar check here: the image no longer bakes one in, it's downloaded by start_My_eXo.sh on
+  # container start (which the dgoss invocation above never runs, since it overrides the entrypoint).
   /opt/myexo/code/logs:
     exists: true
     filetype: directory
