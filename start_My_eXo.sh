@@ -12,7 +12,13 @@ if [ -f app.jar ]; then
 else
   : "${MYEXO_JAR_URL:?MYEXO_JAR_URL must be set to the download URL for the my-exo jar}"
   echo "Downloading my-exo jar from ${MYEXO_JAR_URL}..."
-  curl -fsSL -o app.jar "${MYEXO_JAR_URL}"
+  # MYEXO_JAR_AUTHORIZATION is optional -- the full value of the Authorization header to send (e.g.
+  # "Bearer <token>"), needed for a private repository (e.g. Nexus) that requires one to download from.
+  if [ -n "${MYEXO_JAR_AUTHORIZATION:-}" ]; then
+    curl -fsSL -H "Authorization: ${MYEXO_JAR_AUTHORIZATION}" -o app.jar "${MYEXO_JAR_URL}"
+  else
+    curl -fsSL -o app.jar "${MYEXO_JAR_URL}"
+  fi
   echo "Downloaded app.jar ($(du -h app.jar | cut -f1))"
 fi
 
