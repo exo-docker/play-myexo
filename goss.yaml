@@ -38,7 +38,7 @@ command:
     exec: "java -version"
     exit-status: 0
     stderr:
-      - "21."
+      - "25."
   no_ubuntu_uid_conflict:
     # Newer Ubuntu base images ship a built-in "ubuntu" account at uid/gid 1000 -- the Dockerfile
     # removes it so myexo can be pinned there instead. This catches a future base-image bump silently
