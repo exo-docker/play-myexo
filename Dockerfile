@@ -11,7 +11,7 @@
 #   Run:   docker run -d --name=my-exo -p 20100:20100 -e MYEXO_JAR_URL=https://nexus.example.com/.../my-exo.jar exoplatform/my-exo:latest
 #          docker run -d --name=my-exo -p 20100:20100 -e APP_MODE=preprod -e MYEXO_JAR_URL=... exoplatform/my-exo:latest
 
-FROM eclipse-temurin:21-jre-resolute
+FROM eclipse-temurin:25-jre-resolute
 LABEL maintainer="eXo <exo+docker@exoplatform.com>"
 
 ENV MY_EXO_DIR=/opt/myexo

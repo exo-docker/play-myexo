@@ -1,6 +1,6 @@
 # play-myexo
 
-Docker wrapper for [my-exo](https://github.com/exoplatform/my-exo), a Spring Boot (Java 21) HR/IT
+Docker wrapper for [my-exo](https://github.com/exoplatform/my-exo), a Spring Boot (Java 25) HR/IT
 management app. Runs the jar as a slim, non-root container.
 
 ## How to build
